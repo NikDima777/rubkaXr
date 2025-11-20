@@ -1,0 +1,62 @@
+# ============================
+# Unity generated folders
+# ============================
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+MemoryCaptures/
+UserSettings/
+
+# ============================
+# Unity cache / artifacts
+# ============================
+*.pidb
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Crash reports
+sysinfo.txt
+
+# ============================
+# Rider / IntelliJ
+# ============================
+.idea/
+*.iml
+
+# ============================
+# Visual Studio / .NET
+# ============================
+.vs/
+*.csproj
+*.sln
+*.unityproj
+*.user
+*.userprefs
+*.suo
+*.tmp
+
+# ============================
+# VSCode
+# ============================
+.vscode/
+
+# ============================
+# OS files
+# ============================
+# macOS
+.DS_Store
+# Windows
+Thumbs.db
+Desktop.ini
+
+# ============================
+# Other
+# ============================
+*.swp
+*.lock
+*.log
