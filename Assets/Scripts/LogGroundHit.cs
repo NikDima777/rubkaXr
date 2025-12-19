@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class LogGroundHit : MonoBehaviour
 {
-    public float breakImpactThreshold = 5f;
+    private float breakImpactThreshold = 5f;
     private AxeHit attachedAxe = null;
 
     public void AttachAxe(AxeHit axe)

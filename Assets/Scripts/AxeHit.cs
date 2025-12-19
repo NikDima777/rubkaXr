@@ -4,7 +4,7 @@ public class AxeHit : MonoBehaviour
 {
     [Header("Axe Settings")]
     public Transform axeBlade;
-    public float breakThreshold = 6.0f;
+    private float breakThreshold = 5.0f;
 
     [Header("Sound Settings")]
     public AudioSource hitSound;
