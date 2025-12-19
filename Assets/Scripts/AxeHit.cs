@@ -3,23 +3,20 @@ using UnityEngine;
 public class AxeHit : MonoBehaviour
 {
     [Header("Axe Settings")]
-    public Transform axeBlade;               // Reference to axe blade (Metal)
-    public float breakThreshold = 6.0f;     // Minimum speed required to break logs
+    public Transform axeBlade;
+    public float breakThreshold = 6.0f;
 
     [Header("Sound Settings")]
-    public AudioSource hitSound;             // Sound for successful hit
-    public AudioSource stuckSound;           // Sound when axe gets stuck
+    public AudioSource hitSound;
+    public AudioSource stuckSound;
 
     [Header("Log Settings")]
-    public GameObject brokenLogPrefab;       // Prefab to instantiate when log breaks
-    public float logHalfOffset = 0.2f;       // Distance to separate halves
-    public float logSpawnHeight = 0.2f;      // Height above collision point
+    public GameObject brokenLogPrefab;
+    public float logHalfOffset = 0.2f;
+    public float logSpawnHeight = 0.2f;
 
-    private Vector3 lastPosition;            // Last frame position for velocity calculation
-    private Vector3 currentVelocity;         // Current velocity based on movement
     private Rigidbody rb;
 
-    // For tracking stuck state
     private FixedJoint stuckJoint = null;
     private GameObject stuckLog = null;
 
@@ -27,40 +24,27 @@ public class AxeHit : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         if (rb == null)
-        {
-            Debug.LogWarning("Rigidbody not found on the axe! Velocity will be tracked manually.");
-        }
+            Debug.LogWarning("Rigidbody not found on the axe! Velocity-based hits will be inaccurate.");
 
-        lastPosition = transform.position; // Initialize last position
-    }
-
-    void Update()
-    {
-        // Calculate velocity based on change in position
-        currentVelocity = (transform.position - lastPosition) / Time.deltaTime;
-        lastPosition = transform.position;
+        Debug.Log("[AxeHit] Script initialized.");
     }
 
     void OnCollisionEnter(Collision collision)
     {
-        // Handle normal log
-        Debug.Log($"Axe collided with: {collision.gameObject.name}");
+        Debug.Log($"[AxeHit] Collision with: {collision.gameObject.name}");
+
         if (collision.gameObject.CompareTag("Log") && stuckLog == null && stuckJoint == null)
         {
-            float impactForce = currentVelocity.magnitude;
-            Debug.Log($"Impact speed: {impactForce}");
+            // Используем скорость столкновения
+            float impactForce = collision.relativeVelocity.magnitude;
+            Debug.Log($"[AxeHit] Impact speed: {impactForce}, Threshold: {breakThreshold}");
 
             if (impactForce >= breakThreshold)
-            {
-                // Strong hit: break the log
-                if (hitSound != null) hitSound.Play();
-
+            {                
                 BreakLog(collision.gameObject, collision.transform);
-                
             }
             else
             {
-                // Weak hit: stick the axe
                 if (stuckSound != null) stuckSound.Play();
 
                 Rigidbody logRb = collision.rigidbody;
@@ -74,53 +58,53 @@ public class AxeHit : MonoBehaviour
                     stuckLog = collision.gameObject;
 
                     if (rb != null)
-                        rb.isKinematic = true;
+                    {
+                        rb.constraints = RigidbodyConstraints.FreezeRotationX |
+                                         RigidbodyConstraints.FreezeRotationY |
+                                         RigidbodyConstraints.FreezeRotationZ;
+                    }
+
+                    // Подключаем скрипт для удара об землю
+                    LogGroundHit logScript = stuckLog.GetComponent<LogGroundHit>();
+                    if (logScript != null)
+                        logScript.AttachAxe(this);
+
+                    Debug.Log($"[AxeHit] Axe stuck to log: {stuckLog.name}");
                 }
             }
         }
 
-        // Destroy half logs on collision
-        if (collision.gameObject.CompareTag("HalfLog"))
-        {
-            if (hitSound != null) hitSound.Play();
-            Destroy(collision.gameObject);
-            DiscardSettings();
-        }
-
-        // If axe hits ground while stuck, break the log
-        if (collision.gameObject.CompareTag("Ground") && stuckJoint != null && stuckLog != null)
-        {
-            Debug.Log("Axe collided with Ground while stuck in a log."); // log collision
-            if (hitSound != null) hitSound.Play();
-
-            Debug.Log($"Breaking stuck log: {stuckLog.name}"); // log breaking
-
-            BreakLog(stuckLog, stuckLog.transform);
-
-            Destroy(stuckJoint);            
-
-            if (rb != null)
-            {
-                rb.isKinematic = false;
-                Debug.Log("Axe Rigidbody set to non-kinematic, axe is now free."); // log Rigidbody change
-            }
-        }
+        //if (collision.gameObject.CompareTag("HalfLog"))
+        //{
+        //    if (hitSound != null) hitSound.Play();
+        //    Debug.Log($"[AxeHit] Collided with HalfLog: {collision.gameObject.name}, destroying it.");
+        //    Destroy(collision.gameObject);
+        //    DiscardSettings();
+        //}
     }
 
-    // Method to spawn two halves of a log
-    private void BreakLog(GameObject log, Transform logTransform)
+    public void BreakLog(GameObject log, Transform logTransform)
     {
-        if (brokenLogPrefab == null) return;
+        if (brokenLogPrefab == null)
+        {
+            Debug.LogWarning("[AxeHit] brokenLogPrefab not assigned!");
+            return;
+        }
+
+        Debug.Log($"[AxeHit] Breaking log: {log.name}");
+
+        if (hitSound != null)
+        {
+            hitSound.Play();
+        }
 
         Vector3 spawnPos = logTransform.position + Vector3.up * logSpawnHeight;
         Vector3 offset = logTransform.right * logHalfOffset;
 
-        // Spawn left half
         GameObject half1 = Instantiate(brokenLogPrefab, spawnPos - offset, logTransform.rotation);
         Rigidbody half1Rb = half1.GetComponent<Rigidbody>();
         if (half1Rb != null) half1Rb.AddForce(-offset.normalized * 2f, ForceMode.Impulse);
 
-        // Spawn right half
         GameObject half2 = Instantiate(brokenLogPrefab, spawnPos + offset, logTransform.rotation);
         Rigidbody half2Rb = half2.GetComponent<Rigidbody>();
         if (half2Rb != null) half2Rb.AddForce(offset.normalized * 2f, ForceMode.Impulse);
@@ -133,5 +117,7 @@ public class AxeHit : MonoBehaviour
     {
         stuckJoint = null;
         stuckLog = null;
+        if (rb != null)
+            rb.constraints = RigidbodyConstraints.None;
     }
 }
